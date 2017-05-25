@@ -56,7 +56,8 @@ class LainYaml(object):
         if registry is None:
             error("Please set private_docker_registry config first!")
             error(
-                "Use 'lain config save-global private_docker_registry ${registry_domain}'")
+                "Use 'lain config save-global private_docker_registry ${registry_domain}'"
+            )
             exit(1)
 
         image_prefix = "{}/{}".format(registry, self.appname)
@@ -64,8 +65,8 @@ class LainYaml(object):
             # 预设就是 prepare image 存在 PRIVATE_REGISTRY
             tags = mydocker.get_tag_list_in_registry(registry, self.appname)
         else:
-            tags = mydocker.get_tag_list_in_docker_daemon(
-                registry, self.appname)
+            tags = mydocker.get_tag_list_in_docker_daemon(registry,
+                                                          self.appname)
         prepare_shared_images = {}
         VALID_TAG_PATERN = re.compile(
             r"^prepare-{}-(?P<timestamp>\d+)$".format(prepare_version))
@@ -75,8 +76,9 @@ class LainYaml(object):
                 _timestamp = int(matched.group('timestamp'))
                 prepare_shared_images[_timestamp] = "{}:{}".format(
                     image_prefix, tag)
-        ordered_images = collections.OrderedDict(sorted(
-            prepare_shared_images.items(), reverse=True))
+        ordered_images = collections.OrderedDict(
+            sorted(
+                prepare_shared_images.items(), reverse=True))
         return ordered_images
 
     def gen_prepare_shared_image_name(self):
@@ -86,9 +88,8 @@ class LainYaml(object):
         registry = PRIVATE_REGISTRY
         image_prefix = "{}/{}".format(registry, self.appname)
         timestamp = int(time.time())
-        return "{}:prepare-{}-{}".format(
-            image_prefix, prepare_version, timestamp
-        )
+        return "{}:prepare-{}-{}".format(image_prefix, prepare_version,
+                                         timestamp)
 
     def ensure_proper_shared_image(self):
         # 在 registry 以及本地寻找合适可用的 shared prepare
@@ -133,7 +134,8 @@ class LainYaml(object):
             return local_latest[1]
         if remote_latest is None and local_latest is None:
             warn(
-                "found no proper shared prepare image neither at local nor remote, rebuild ...")
+                "found no proper shared prepare image neither at local nor remote, rebuild ..."
+            )
             return None
 
     def build_prepare(self):
@@ -149,13 +151,13 @@ class LainYaml(object):
                 'copy_list': ['.'],
                 'scripts': self.build.prepare.script
             }
-            name = self.img_builders['prepare'](
-                context=self.ctx, params=params)
+            name = self.img_builders['prepare'](context=self.ctx,
+                                                params=params)
             if name is None:
                 return (False, None)
             if mydocker.push(self.img_names['prepare']) != 0:
-                warn("FAILED: docker push {}".format(
-                    self.img_names['prepare']))
+                warn("FAILED: docker push {}".format(self.img_names[
+                    'prepare']))
             return (True, name)
         else:
             return (True, self.img_names['prepare'])
@@ -174,13 +176,13 @@ class LainYaml(object):
                 'copy_list': ['.'],
                 'scripts': self.build.prepare.script
             }
-            name = self.img_builders['prepare'](
-                context=self.ctx, params=params)
+            name = self.img_builders['prepare'](context=self.ctx,
+                                                params=params)
             if name is None:
                 return (False, None)
             if mydocker.push(self.img_names['prepare']) != 0:
-                warn("FAILED: docker push {}".format(
-                    self.img_names['prepare']))
+                warn("FAILED: docker push {}".format(self.img_names[
+                    'prepare']))
             return (True, name)
         else:
             params = {
@@ -191,7 +193,8 @@ class LainYaml(object):
             }
             name = self.prepare_updater(
                 name=self.gen_prepare_shared_image_name(),
-                context=self.ctx, params=params)
+                context=self.ctx,
+                params=params)
             if name is None:
                 return (False, None)
             if mydocker.push(name) != 0:
@@ -238,8 +241,9 @@ class LainYaml(object):
                 'scripts': self.release.script
             }
             inter_name = self.gen_name(phase='script_inter')
-            script_inter_name = mydocker.build(
-                inter_name, self.ctx, self.ignore, self.img_temps['build'], params)
+            script_inter_name = mydocker.build(inter_name, self.ctx,
+                                               self.ignore,
+                                               self.img_temps['build'], params)
             if script_inter_name is None:
                 return (False, None)
         else:
@@ -254,9 +258,8 @@ class LainYaml(object):
         def to_dest(f):
             return copy_dest + p.join(DOCKER_APP_ROOT, f)
 
-        src_dest = [(
-            x.get('src', x), to_dest(x.get('dest', x))) for x in self.release.copy
-        ]
+        src_dest = [(x.get('src', x), to_dest(x.get('dest', x)))
+                    for x in self.release.copy]
         copy_scripts = []
         release_tar = 'release.tar'
         for src, dest in src_dest:
@@ -270,8 +273,8 @@ class LainYaml(object):
             'scripts': copy_scripts + tar_script
         }
         inter_name = self.gen_name(phase='copy_inter')
-        copy_inter_name = mydocker.build(
-            inter_name, self.ctx, self.ignore, self.img_temps['build'], params)
+        copy_inter_name = mydocker.build(inter_name, self.ctx, self.ignore,
+                                         self.img_temps['build'], params)
         if script_inter_name != self.img_names['build']:
             mydocker.remove_image(script_inter_name)
         if copy_inter_name is None:
@@ -281,8 +284,9 @@ class LainYaml(object):
             host_release_tar = tempfile.NamedTemporaryFile(delete=False).name
             untar = tempfile.mkdtemp()
 
-            mydocker.copy_to_host(copy_inter_name, p.join(
-                DOCKER_APP_ROOT, release_tar), host_release_tar)
+            mydocker.copy_to_host(copy_inter_name,
+                                  p.join(DOCKER_APP_ROOT, release_tar),
+                                  host_release_tar)
             mydocker.remove_image(copy_inter_name)
 
             mkdir_p(untar)
@@ -339,9 +343,7 @@ class LainYaml(object):
         :return: (True, image_name) or (False, None)
         """
         self._prepare_act()
-        params = {
-            'base': 'scratch'
-        }
+        params = {'base': 'scratch'}
         name = self.img_builders['meta'](context=self.ctx, params=params)
         if name is None:
             return (False, None)
@@ -353,18 +355,24 @@ class LainYaml(object):
 
         if self.yaml_path is None:
             raise Exception(
-                'self.yaml_path not set, can not perform action, only fields defined in lain.yaml is accessible')
+                'self.yaml_path not set, can not perform action, only fields defined in lain.yaml is accessible'
+            )
 
         self.ctx = file_parent_dir(self.yaml_path)
         self.workdir = DOCKER_APP_ROOT + '/'  # '/' is need for COPY in Dockefile
 
         self.ignore = ['.git', '.vagrant']
 
-        self.gen_name = partial(mydocker.gen_image_name, appname=self.appname)
+        self.gen_name = partial(
+            mydocker.gen_image_name,
+            appname=self.appname,
+            meta_version=meta_version(self.ctx))
 
         phases = ('prepare', 'build', 'release', 'test', 'meta')
-        self.img_names = {phase: self.gen_name(
-            phase=phase) for phase in phases}
+        self.img_names = {
+            phase: self.gen_name(phase=phase)
+            for phase in phases
+        }
         if ignore_prepare:
             shared_prepare_image_name = None
         else:
@@ -381,16 +389,24 @@ class LainYaml(object):
             'test': 'build_dockerfile.j2',
             'meta': 'meta_dockerfile.j2'
         }
-        self.img_temps = {phase: load_template(
-            j2temps[phase]) for phase in phases}
+        self.img_temps = {
+            phase: load_template(j2temps[phase])
+            for phase in phases
+        }
 
         self.img_builders = {
-            phase: partial(mydocker.build, name=self.img_names[phase], ignore=self.ignore, template=self.img_temps[phase])
+            phase: partial(
+                mydocker.build,
+                name=self.img_names[phase],
+                ignore=self.ignore,
+                template=self.img_temps[phase])
             for phase in phases
         }
 
         self.prepare_updater = partial(
-            mydocker.build, ignore=self.ignore, template=load_template('build_dockerfile.j2'))
+            mydocker.build,
+            ignore=self.ignore,
+            template=load_template('build_dockerfile.j2'))
 
         self.act = True
 
